@@ -43,13 +43,14 @@ APP_INCLUDES   =
 EXETYPE    = elf                # Target image file format
 MODULE     = mod                # Downloadable module extension
 
+TARGETDIR = 
 #-------------------------------------------------------------------------------
 # Target compile time symbol definitions
 #
 # Tells the SDK source stuffs that we're building a dynamic app.
 #-------------------------------------------------------------------------------
 
-DYNAPP          = -DDYNAMIC_APP
+DYNAPP          = -DDYNAMIC_APP -DHAL_BREW
 
 
 #-------------------------------------------------------------------------------
@@ -64,9 +65,9 @@ ARMBIN = $(RVCT31BIN)
 ARMINC = $(ARM_HOME)\include    # ARM ADS include file directory
 ARMLIB = $(ARM_HOME)\lib        # ARM ADS library directory
 
-ARMCC   = $(ARMBIN)\armcc       # ARM ADS ARM 32-bit inst. set ANSI C compiler
-LD      = $(ARMBIN)\armlink     # ARM ADS linker
-HEXTOOL = $(ARMBIN)\fromelf     # ARM ADS utility to create hex file from image
+ARMCC   = "$(ARMBIN)\armcc"       # ARM ADS ARM 32-bit inst. set ANSI C compiler
+LD      = "$(ARMBIN)\armlink"     # ARM ADS linker
+HEXTOOL = "$(ARMBIN)\fromelf"     # ARM ADS utility to create hex file from image
 
 OBJ_CMD    = -o                 # Command line option to specify output filename
 
@@ -89,7 +90,7 @@ APCS = -apcs /$(ROPI)/$(INTERWRK)/norwpi
 # Additional compile time error checking options
 #-------------------------------------------------------------------------------
 
-CHK = -fa                       # Check for data flow anomolies
+#CHK = -fa                       # Check for data flow anomolies
 
 #-------------------------------------------------------------------------------
 # Compiler output options
@@ -107,7 +108,9 @@ DBG = -g                        # Enable debug
 # Compiler optimization options
 #-------------------------------------------------------------------------------
 
-OPT = -Ospace -O2               # Full compiler optimization for space
+OPT = -Ospace -O2      # Full compiler optimization for space
+
+MYOPT = --c99 --gnu -DC99
 
 #-------------------------------------------------------------------------------
 # Compiler code generation options
@@ -154,7 +157,7 @@ BINFORMAT = -bin
 #-------------------------------------------------------------------------------
 
 CFLAGS0 = $(OUT) $(DYNAPP) $(CPU) $(APCS) $(CODE) $(CHK) $(DBG)
-CFLAGS  = $(CFLAGS0) $(OPT)
+CFLAGS  = $(CFLAGS0) $(OPT) $(MYOPT)
 
 #-------------------------------------------------------------------------------
 # Linker flag definitions
@@ -162,7 +165,7 @@ CFLAGS  = $(CFLAGS0) $(OPT)
 
 # the -entry flag is not really needed, but it keeps the linker from reporting
 # warning L6305W (no entry point).  The address
-LFLAGS = $(ROPILINK) -rwpi -entry 0x8000#
+LFLAGS = $(ROPILINK) -rwpi -rw-base 0 -ro-base 0 -entry AEEMod_Load
 
 #----------------------------------------------------------------------------
 # Default target
@@ -180,8 +183,8 @@ clean :
 	@echo ---------------------------------------------------------------
 	@echo CLEAN
 	-del /f $(OBJS)
-	-del /f $(TARGET).$(EXETYPE)
-	-del /f $(TARGET).$(MODULE)
+	-del /f $(TARGETDIR)/$(TARGET).$(EXETYPE)
+	-del /f $(TARGETDIR)/$(TARGET).$(MODULE)
 	@echo ---------------------------------------------------------------
 
 #============================================================================
@@ -240,10 +243,10 @@ APP_OBJS = $(OBJS)
 $(TARGET).$(MODULE) : $(TARGET).$(EXETYPE)
 	@echo ---------------------------------------------------------------
 	@echo TARGET $@
-	$(HEXTOOL)  $(TARGET).$(EXETYPE) $(BINFORMAT) $(TARGET).$(MODULE)
+	$(HEXTOOL)  -output $(TARGETDIR)/$(TARGET).$(MODULE) $(BINFORMAT) $(TARGETDIR)/$(TARGET).$(EXETYPE)
 
 $(TARGET).$(EXETYPE) : $(APP_OBJS)
 	@echo ---------------------------------------------------------------
 	@echo TARGET $@
-	$(LD) $(LINK_CMD) $(TARGET).$(EXETYPE) $(LFLAGS) $(APP_OBJS) $(LINK_ORDER)
+	$(LD) $(LINK_CMD) $(TARGETDIR)/$(TARGET).$(EXETYPE) $(LFLAGS) $(APP_OBJS) $(LINK_ORDER)
 
